@@ -4,7 +4,7 @@ let db;
 
 async function connectDB() {
     const client = new mongodb.MongoClient(process.env.MONGO_URI, {  });
-    
+
     try {
         await client.connect();
         db = client.db(process.env.DB_NAME);

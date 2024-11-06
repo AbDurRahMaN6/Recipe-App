@@ -1,25 +1,29 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const { getDB } = require('../config/db');
 const bcrypt = require('bcrypt');
+const { getDB } = require('../config/db');
+const User = require('../models/User');
 
 async function registerUser(req, res) {
-    const { firstname, lastname, email, password } = req.body;
+    const { firstname, lastname, email, phone, password, confirmPassword } = req.body;
 
-    if (!firstname || !lastname || !email || !password) {
+    if (!firstname || !lastname || !email || !phone || !password || !confirmPassword) {
         return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    if (password !== confirmPassword) {
+        return res.status(400).json({ message: 'Passwords must match' });
     }
 
     try {
         const db = getDB();
         const usersCollection = db.collection('users');
-
+        
         const existingUser = await usersCollection.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        const user = new User(firstname, lastname, email, password);
+        const user = new User(firstname, lastname, email, phone, password);
         await user.hashPassword();
         const insertedUser = await usersCollection.insertOne(user);
 
@@ -57,7 +61,4 @@ async function loginUser(req, res) {
     }
 }
 
-module.exports = {
-    registerUser,
-    loginUser
-};
+module.exports = { registerUser, loginUser };

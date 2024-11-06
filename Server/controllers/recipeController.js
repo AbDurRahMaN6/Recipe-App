@@ -1,8 +1,6 @@
 const axios = require('axios');
 const { getDB } = require('../config/db');
-const { ObjectId } = require('mongodb'); 
 const mongodb = require('mongodb');
-
 
 const fetchCategories = async (req, res) => {
     try {
@@ -13,7 +11,6 @@ const fetchCategories = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch categories' }); 
     }
 };
-
 
 const addFavoriteRecipe = async (req, res) => {
     const { recipeId } = req.body;
@@ -47,5 +44,44 @@ const addFavoriteRecipe = async (req, res) => {
     }
 };
 
+const getFavoriteRecipes = async (req, res) => {
+    const db = getDB();
+    const userId = req.user.id;
 
-module.exports = { fetchCategories, addFavoriteRecipe };
+    try {
+        const user = await db.collection('users').findOne({ _id: new mongodb.ObjectId(userId) });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        res.json({ favorites: user.favorites });
+    } catch (error) {
+        console.error('Error fetching favorites:', error);
+        res.status(500).json({ message: 'Failed to fetch favorite items' });
+    }
+};
+
+const removeFavoriteRecipe = async (req, res) => {
+    const { recipeId } = req.body;
+    const db = getDB();
+    const userId = req.user.id;
+
+    try {
+        const result = await db.collection('users').updateOne(
+            { _id: new mongodb.ObjectId(userId) },
+            { $pull: { favorites: recipeId } }
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(400).json({ message: 'Recipe not found in favorites' });
+        }
+
+        res.json({ message: 'Recipe removed from favorites' });
+    } catch (error) {
+        console.error('Error removing favorite:', error);
+        res.status(500).json({ message: 'Failed to remove favorite item' });
+    }
+};
+
+module.exports = { fetchCategories, addFavoriteRecipe, getFavoriteRecipes, removeFavoriteRecipe };
